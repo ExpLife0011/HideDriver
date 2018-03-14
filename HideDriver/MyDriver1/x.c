@@ -11,32 +11,19 @@ ULONG_PTR Get_MiProcessLoaderEntry()
 
 	RtlInitUnicodeString(&EtwWriteStringName, L"EtwWriteString");
 	EtwWriteStringAddress = (ULONG_PTR)MmGetSystemRoutineAddress(&EtwWriteStringName);
-
-	EndAddress = EtwWriteStringAddress - 0x600;
-	while (EndAddress < EtwWriteStringAddress)
+	DbgBreakPoint();
+	EndAddress = EtwWriteStringAddress - 0x6000;
+	char temp_code[] = "\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x18"
+		"\x48\x89\x74\x24\x20\x57\x41\x54\x41\x55"
+		"\x41\x56\x41\x57";
+	for (auto i = 0; i < 0x6000; i++)
 	{
-		p = (UCHAR*)EtwWriteStringAddress;
-		__try
+		if (memcmp((char*)EndAddress + i, temp_code, 24) == 0)
 		{
-			if (*p == 0x48 && *(p + 1) == 0x89 && *(p + 2) == 0x5c && *(p + 3) == 0x24 && *(p + 4) == 0x08 &&
-				*(p + 5) == 0x48 && *(p + 6) == 0x89 && *(p + 7) == 0x6c && *(p + 8) == 0x24 && *(p + 9) == 0x18 &&
-				*(p + 10) == 0x48 && *(p + 11) == 0x89 && *(p + 12) == 0x74 && *(p + 13) == 0x24 && *(p + 14) == 0x20 &&
-				*(p + 15) == 0x57 && *(p + 16) == 0x41 && *(p + 17) == 0x54 && *(p + 18) == 0x41 && *(p + 19) == 0x55 &&
-				*(p + 20) == 0x41 && *(p + 21) == 0x56 && *(p + 22) == 0x41 && *(p + 23) == 0x57)
-			{
-				KdPrint(("MiProcessLoaderEntry Address is %llx\n", (ULONG_PTR)EtwWriteStringAddress));
-				return EtwWriteStringAddress;
-			}
+			return EndAddress + i;
 		}
-		__except (1)
-		{
-			KdPrint(("查找出错！\n"));
-			return 0;
-		}
-		--EtwWriteStringAddress;
 	}
-
-	KdPrint(("未找到MiProcessLoaderEntry函数！\n"));
+	KdPrint(("not found\n"));
 	return 0;
 }
 
@@ -146,7 +133,7 @@ VOID _fastcall HideDriver(PVOID x)
 
 	JudgeLoadDriver();
 
-	PsTerminateSystemThread(STATUS_SUCCESS);
+	//PsTerminateSystemThread(STATUS_SUCCESS);
 }
 
 NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING RegString)
